@@ -26,6 +26,11 @@ public:
     QVector<double> eeg_data;
     QVector<double> sample_no;
 
+    int s_limit;
+    int s_limit_move;
+
+    int sampling_rate;
+
     int s_no;
 
     void PlotData(int ch_no, int p1, int pt, QVector<double> &sample_no, QVector<double> &eeg_data);
@@ -40,6 +45,12 @@ public slots:
 
 private slots:
     void on_pushButton_clicked();
+
+    void on_doubleSpinBox_valueChanged(double arg1);
+
+    void on_spinBox_4_valueChanged(int arg1);
+
+    void on_doubleSpinBox_2_valueChanged(double arg1);
 
 signals:
     void plotEEGdata(int ch_no, int p1, int pt, QVector<double> &sample_no, QVector<QVector<double> > &eeg_data);

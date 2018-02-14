@@ -14,6 +14,10 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->widget->addGraph();
     }
     s_no = 0;
+
+    sampling_rate = ui->spinBox_4->value();
+    s_limit = sampling_rate*ui->doubleSpinBox->value();
+    s_limit_move = sampling_rate*ui->doubleSpinBox_2->value();
 }
 
 void MainWindow::Connect()
@@ -22,6 +26,7 @@ void MainWindow::Connect()
 
     mySocket = new QTcpSocket(this);
     //data_counter = 0;
+
     connect(mySocket, SIGNAL(readyRead()), this, SLOT(readTcpData()));
 
     QString ip_add = ui->lineEdit->text();
@@ -94,7 +99,7 @@ void MainWindow::saveData(QString fname, QString data, bool append)
     {
         pFile = fopen(fname.toLocal8Bit().constData(), "wb");
     }
-    qDebug()<<data;
+    //qDebug()<<data;
     fwrite (data.toLocal8Bit().constData() , sizeof(char), data.size()*sizeof(char), pFile);
     fclose (pFile);
 }
@@ -166,7 +171,7 @@ void MainWindow::readTcpData()
     }
 
 
-    if(sample_no.size()>1000)
+    if(sample_no.size()>s_limit)
     {
         int c_ch = ui->spinBox_3->value()-1;
         //qDebug()<<eeg_all[0].size()<<" and "<<sample_no.size();
@@ -196,9 +201,17 @@ void MainWindow::readTcpData()
 
 void MainWindow::onPlotEEGdata(int ch_no, int p1, int pt, QVector<double> &sample_no, QVector<QVector<double> > &eeg_data)
 {
-    if(sample_no.size()>500)
+
+    QString fname = ui->lineEdit_2->text()+".txt";
+
+    if(ui->lineEdit_2->text() == NULL)
     {
-        //qDebug()<<eeg_all[0].size()<<" and "<<sample_no.size();
+        fname="test.txt";
+    }
+
+//    if(sample_no.size()>500)
+//    {
+//        //qDebug()<<eeg_all[0].size()<<" and "<<sample_no.size();
 
 
         if(ui->checkBox_2->isChecked())
@@ -207,7 +220,6 @@ void MainWindow::onPlotEEGdata(int ch_no, int p1, int pt, QVector<double> &sampl
             {
 
                     QString dane;
-                    QString fname = "test3.txt";
                     dane = QString::number(eeg_data[ch_no][j])+";"+QString::number(eeg_data[ch_no+1][j])+"\n";
                     saveData(fname, dane, true);
             }
@@ -234,17 +246,18 @@ void MainWindow::onPlotEEGdata(int ch_no, int p1, int pt, QVector<double> &sampl
         ui->widget->graph(0)->rescaleAxes();
         ui->widget->replot();
 
-        int rem = sample_no.size();
-        sample_no.remove(0,200);
+        int rem = 0.2*sampling_rate;
+        //qDebug()<<rem;
+        sample_no.remove(0,rem);
         //sample_no.clear();
         //sample_no.pop_front();
         for(int i=0;i<8;i++)
         {
-            eeg_all[i].remove(0,200);
+            eeg_all[i].remove(0,rem);
             //eeg_all[i].clear();
         }
         //qDebug()<<eeg_all[0].size()<<" and "<<sample_no.size();
-    }
+    //}
 
 }
 
@@ -257,4 +270,18 @@ void MainWindow::on_pushButton_clicked()
         eeg_all.push_back(eeg_data);
     }
     Connect();
+}
+void MainWindow::on_doubleSpinBox_valueChanged(double arg1)
+{
+    s_limit = (int)(sampling_rate * arg1);
+}
+
+void MainWindow::on_spinBox_4_valueChanged(int arg1)
+{
+    sampling_rate = arg1;
+}
+
+void MainWindow::on_doubleSpinBox_2_valueChanged(double arg1)
+{
+    s_limit_move = (int)(sampling_rate * arg1);
 }
