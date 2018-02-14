@@ -122,6 +122,20 @@
          </property>
         </spacer>
        </item>
+       <item>
+        <widget class="QCheckBox" name="checkBox">
+         <property name="text">
+          <string>CrossPlot</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="checkBox_2">
+         <property name="text">
+          <string>SAVE</string>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
     </item>
