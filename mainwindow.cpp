@@ -6,6 +6,9 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    connect(this, SIGNAL(plotEEGdata(int,int,int,QVector<double>&,QVector<QVector<double> >&)),this, SLOT(onPlotEEGdata(int,int,int,QVector<double>&,QVector<QVector<double> >&)));
+
     for(int i=0;i<ui->spinBox_2->value();i++)
     {
         ui->widget->addGraph();
@@ -79,13 +82,30 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+void MainWindow::saveData(QString fname, QString data, bool append)
+{
+    //const unsigned long size = data.size();
+    FILE *pFile;
+    if(append)
+    {
+        pFile = fopen(fname.toLocal8Bit().constData(), "ab");
+    }
+    else
+    {
+        pFile = fopen(fname.toLocal8Bit().constData(), "wb");
+    }
+    qDebug()<<data;
+    fwrite (data.toLocal8Bit().constData() , sizeof(char), data.size()*sizeof(char), pFile);
+    fclose (pFile);
+}
+
 void MainWindow::readTcpData()
 {
     mySocket->waitForBytesWritten(3000);
     mySocket->waitForReadyRead(3000);
 
 
-    qDebug()<<"cos czytam";//<<data_counter;
+    //qDebug()<<"cos czytam";//<<data_counter;
     QByteArray danetcp;
     danetcp.reserve(3000);
     danetcp = mySocket->readAll();
@@ -134,7 +154,8 @@ void MainWindow::readTcpData()
 
 
                     //PlotData(i/3, sample, s_no, sample_no, eeg_data);
-                    qDebug()<<eeg_all[0].size()<<" and "<<sample_no.size();
+                //qDebug()<<eeg_all[0].size()<<" and "<<sample_no.size();
+
                 //}
                 //std::string stdString(fbyte.constData(), fbyte.length());
                 //qDebug()<<QString::fromStdString(stdString);
@@ -144,25 +165,87 @@ void MainWindow::readTcpData()
         }
     }
 
+
     if(sample_no.size()>1000)
     {
-        int rem = sample_no.size();
-        sample_no.remove(0,(rem-1000));
-        //sample_no.pop_front();
-        for(int i=0;i<8;i++)
-        {
-            eeg_all[i].remove(0,(rem-1000));;
-        }
+        int c_ch = ui->spinBox_3->value()-1;
+        //qDebug()<<eeg_all[0].size()<<" and "<<sample_no.size();
+        emit plotEEGdata(c_ch, 1, 1, sample_no, eeg_all);
     }
+//    if(sample_no.size()>1000)
+//    {
+//        int rem = sample_no.size();
+//        sample_no.remove(0,(rem-1000));
+//        //sample_no.pop_front();
+//        for(int i=0;i<8;i++)
+//        {
+//            eeg_all[i].remove(0,(rem-1000));;
+//        }
+//    }
+
     //plot
-    ui->widget->graph(0)->setData(sample_no,eeg_all[ui->spinBox_3->value()-1]);
-    ui->widget->graph(0)->rescaleAxes();
-    ui->widget->replot();
+//    ui->widget->graph(0)->setData(sample_no,eeg_all[ui->spinBox_3->value()-1]);
+//    ui->widget->graph(0)->rescaleAxes();
+//    ui->widget->replot();
 
 
 
 
     //qDebug()<<"size: "<<data.size();
+}
+
+void MainWindow::onPlotEEGdata(int ch_no, int p1, int pt, QVector<double> &sample_no, QVector<QVector<double> > &eeg_data)
+{
+    if(sample_no.size()>500)
+    {
+        //qDebug()<<eeg_all[0].size()<<" and "<<sample_no.size();
+
+
+        if(ui->checkBox_2->isChecked())
+        {
+            for(int j = 0; j<eeg_data[ch_no].size(); j++)
+            {
+
+                    QString dane;
+                    QString fname = "test3.txt";
+                    dane = QString::number(eeg_data[ch_no][j])+";"+QString::number(eeg_data[ch_no+1][j])+"\n";
+                    saveData(fname, dane, true);
+            }
+        }
+
+        if(ui->checkBox->isChecked())
+        {
+            ui->widget->graph(0)->setLineStyle(QCPGraph::lsNone);
+            ui->widget->graph(0)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, 4));
+            ui->widget->graph(0)->setData(eeg_data[ch_no],eeg_data[ch_no+1]);
+//            int d = 100000000;
+//            ui->widget->xAxis->setRange(9*d, 10*d);
+//            ui->widget->yAxis->setRange(9*d, 10*d);
+        }
+        else
+        {
+            ui->widget->graph(0)->setLineStyle(QCPGraph::lsLine);
+            ui->widget->graph(0)->setScatterStyle(QCPScatterStyle::ssNone);
+            ui->widget->graph(0)->setData(sample_no,eeg_data[ch_no]);
+
+        }
+
+
+        ui->widget->graph(0)->rescaleAxes();
+        ui->widget->replot();
+
+        int rem = sample_no.size();
+        sample_no.remove(0,200);
+        //sample_no.clear();
+        //sample_no.pop_front();
+        for(int i=0;i<8;i++)
+        {
+            eeg_all[i].remove(0,200);
+            //eeg_all[i].clear();
+        }
+        //qDebug()<<eeg_all[0].size()<<" and "<<sample_no.size();
+    }
+
 }
 
 void MainWindow::on_pushButton_clicked()
